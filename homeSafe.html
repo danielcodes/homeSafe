@@ -6,6 +6,7 @@
     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
     <script src='https://api.mapbox.com/mapbox.js/v2.4.0/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v2.4.0/mapbox.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox.js/plugins/turf/v2.0.2/turf.min.js'></script>
     <style>
         body { margin:0; padding:0; }
         #map { position:absolute; top:0; bottom:0; width:100%; }
@@ -31,7 +32,7 @@
     var circle_options = {
         color: '#fff',      // Stroke color
         opacity: 1,         // Stroke opacity
-        weight: 10,         // Stroke weight
+        weight: 5,         // Stroke weight
         fillColor: '#000',  // Fill color
         fillOpacity: 0.6    // Fill opacity
     };
@@ -59,8 +60,20 @@
     }).addTo(map);
 
     map.on('draw:created', function(e) {
-        featureGroup.addLayer(e.layer);
+    let cords = [];
+    e.layer._latlngs.forEach(function(latlngs){
+        cords.push([latlngs.lat, latlngs.lng]);
+    })
+
+    var stormline = turf.linestring(cords, {
+    "stroke": "#6BC65F",
+    "stroke-width": 5
+});
+        var bufferstorm = turf.buffer(stormline, 20, 'miles');
+        console.log(bufferstorm);
+        featureGroup.addLayer(setGeoJSON.bufferstorm.features);
     });
+
 </script>
 </body>
 </html>
