@@ -8,6 +8,7 @@
     <link href='js/mapbox-gl.css' rel='stylesheet' />
     <script src='js/mapbox-gl-draw.js'></script>
     <link href="js/mapbox-gl-draw.css" rel="stylesheet" />   
+	<script src='js/coastalCounties.js'></script>
     <script src='https://api.mapbox.com/mapbox.js/plugins/turf/v2.0.2/turf.min.js'></script>
 
 		<!-- Latest compiled and minified CSS -->
@@ -111,47 +112,45 @@
 										5:0.0251089529
 		};
 
-		//Returns the body counts from a list of populations, given the category of hurricane on top of them.
-		function deathsLists(populations,cat) {
-				var total = 0;
-				for(var i=0;i<populations.length;i++) {
-						total+=deaths(populations[i],cat);
-				}
-				return total;
-		}
-
 		const COUNTY_IS_LARGE = 4000;
 
-		//Returns the body count from a population, given the category of hurricane on top of it.
-		function deaths(population, cat, byWater) {
-				if(population>COUNTY_IS_LARGE) {
-						population = 4000;
-				}
-				var aDeathTotal = population*mortality[cat];
-				if(byWater)
-						aDeathTotal = aDeathTotal*.8;
-				else
-						aDeathTotal = aDeathTotal*.2;
-				return aDeathTotal;
-		}
+        //Returns the body count from a population, given the category of hurricane on top of it.
+        function deaths(population, cat, byWater) {
+            if(population>COUNTY_IS_LARGE) {
+                population = COUNTY_IS_LARGE;
+            }
+            var aDeathTotal = population*mortality[cat];
+            if(byWater)
+                aDeathTotal = aDeathTotal*.8;
+            else
+                aDeathTotal = aDeathTotal*.2;
+            return aDeathTotal;
+        }
 
-		//Returns the total body count
-		function bodyCount(counties,hurricane,category) {
-				var totalPop = 0;
-				for(var i=0;i<counties.length;i++) {
-						if(counties[i].properties.B01003001) {
-			try{
-				if(turf.intersect(counties[i], hurricane.features[0])!=null)
-					totalPop+=counties[i].properties.B01003001;
-			} catch(e){}                    
-						}
-				}
-				return deaths(totalPop, category);
-		}
-
-		//Static test stuff
-		for(var num =1;num<6;num++) {
-				console.log(deaths(1000,num));
+        //Returns a jsonArray of the total body counts by hurricane category
+        function bodyCountAsJSON(counties,hurricane) {
+            var totalDeathsJSON = {1:0,2:0,3:0,4:0,5:0};
+            for(var i=0;i<counties.length;i++) {
+                if(counties[i].properties.B01003001) {
+                    try{
+                        if(turf.intersect(counties[i], hurricane.features[0])!=null) {
+                            const fips = counties[i].properties.geoid.split('US')[1];
+                            const coastal = coastalCounties.includes(fips);
+                                for(var cat=1;cat<6;cat++) {
+                                    totalDeathsJSON[cat] += deaths(counties[i].properties.B01003001, cat, coastal);
+                                }
+                        }
+                    } catch(e){}
+                }
+            }
+            return roundVals(totalDeathsJSON);
+        }
+		
+		function roundVals(json) {
+			for(var i=1;i<6;i++) {
+				json[i]=Math.round(json[i]*100)/100
+			}
+			return json;
 		}
 
 //@END
@@ -244,30 +243,7 @@
 	    return ocean;
 	}
 
-	//Returns a jsonArray of the total body counts by hurricane category
-	function bodyCountAsJSON(counties,hurricane) {
-		var totalDeathsJSON = {1:0,2:0,3:0,4:0,5:0};
-		for(var i=0;i<counties.length;i++) {
-			if(counties[i].properties.B01003001) {
-				try{
-					if(turf.intersect(counties[i], hurricane.features[0])!=null)
-						for(var cat=1;cat<6;cat++) {
-							//TODO: check for whether ths county is coastal
-							totalDeathsJSON[cat] += deaths(counties[i].properties.B01003001, cat, true);
-					}
-				} catch(e){}
-			}
-		}
-		return totalDeathsJSON;
-	}
 
-	function getCountyBodyCount(bufferstorm, cat) {
-		const features = map.queryRenderedFeatures(bufferstorm, { 
-			layers: ['counties'], 
-			filter: ['has','feature.properties.B01003001']
-		});
-		return bodyCount(features, bufferstorm, cat);
-	}
 
 	function getCountyBodyCountAllCategories(bufferstorm) {
 			const features = map.queryRenderedFeatures(bufferstorm, {
