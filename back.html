@@ -67,10 +67,12 @@
         //Returns the total body count
         function bodyCount(counties,hurricane,category) {
             var totalPop = 0;
-            for(vari=0;i<counties.length;i++) {
-                if(turf.intersect(counties[i], hurricane)!=null) {
-                    //TODO: fix this
-                    totalPop+=counties[i].population;
+            for(var i=0;i<counties.length;i++) {
+                if(counties[i].properties.B01003001) {
+					try{
+						if(turf.intersect(counties[i], hurricane.features[0])!=null)
+							totalPop+=counties[i].properties.B01003001;
+					} catch(e){}                    
                 }
             }
             return deaths(totalPop, category);
@@ -143,22 +145,20 @@ map.on('style.load', function() {
         Draw.deleteAll() 
         Draw.add(bufferstorm); // add to it's own layer , not the draw layer
 
-        //https://www.mapbox.com/mapbox-gl-js/example/using-box-queryrenderedfeatures/
-        const features = map.queryRenderedFeatures(bufferstorm, { layers: ['counties'] });
-
-            // Run through the selected features and set a filter
-            // to match features with unique FIPS codes to activate
-            // the `counties-highlighted` layer.
-		let totalpop = 0;
-        const filter = features.reduce(function(nothing, feature) {
-            if(feature.properties.B01003001){
-                console.log(feature)
-                totalpop += feature.properties.B01003001;
-            }
-			return totalpop;
-        }, ['in', 'FIPS']);
-		console.log(filter);
+		console.log(getCountyBodyCount(bufferstorm, '5'));
+		
+		//console.log(filter);
     }
+	
+	function getCountyBodyCount(bufferstorm, cat) {
+		const features = map.queryRenderedFeatures(bufferstorm, { 
+			layers: ['counties'], 
+			filter: ['has','feature.properties.B01003001']
+		});
+		return bodyCount(features, bufferstorm, cat);
+	}
+	
+	
 });
 
 
