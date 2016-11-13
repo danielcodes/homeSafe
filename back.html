@@ -105,8 +105,14 @@ map.on('style.load', function() {
         "url": "mapbox://zhik.0dg3a5tc"
     });
 
+    map.addSource('water', {
+        "type": "vector",
+        "url": "mapbox://zhik.81hc6tfw"
+    });
+
+
     map.addLayer({
-        "id": "counties",
+        "id": "counties1",
         "type": "fill",
         "source": "counties",
         "source-layer": "acs2014_5yr_B01003_05000US560-3isjt9",
@@ -114,7 +120,17 @@ map.on('style.load', function() {
             "fill-outline-color": "rgba(0,0,0,0.1)",
             "fill-color": "rgba(0,0,0,0.1)"
         }
-    });
+    }, 'place-city-sm');
+
+    map.addLayer({
+        "id": "water1",
+        "type": "fill",
+        "source": "water",
+        "source-layer": "simplified-water-polygons-com-2kj5lv",
+        "paint": {
+            "fill-color": "rgba(55,107,158, 0.8)"
+        }
+    }, 'counties1');
         
     /*map.addLayer({
         "id": "counties-highlighted",
@@ -130,7 +146,12 @@ map.on('style.load', function() {
     }); */
 
     //make draw controls
-    let Draw = mapboxgl.Draw();
+    let Draw = mapboxgl.Draw({
+      displayControlsDefault: false,
+      controls: {
+        'line_string': true
+      }
+    });
     map.addControl(Draw);
 
     //get all draw layers and make the buffers
@@ -141,15 +162,30 @@ map.on('style.load', function() {
         const bufferstorm = turf.buffer(storm, 1, 'miles');
         Draw.deleteAll() 
         Draw.add(bufferstorm); // add to it's own layer , not the draw layer
-
-
+        
 		console.log(getCountyBodyCount(bufferstorm, '5'));
-		
+		console.log(onOcean(bufferstorm));
 	};
 	
+
+    function onOcean(bufferstorm) {
+		const features = map.queryRenderedFeatures({ 
+			layers: ['water1']
+		});
+        let ocean = false;
+        for(var i=0;i<features.length;i++) {
+            try{
+                if(turf.union(features[i], bufferstorm.features[0])!=null){      
+                    ocean = true         
+                }
+            } catch(e){}      
+        }
+	    return ocean;
+	}
+
 	function getCountyBodyCount(bufferstorm, cat) {
 		const features = map.queryRenderedFeatures(bufferstorm, { 
-			layers: ['counties'], 
+			layers: ['counties1'], 
 			filter: ['has','feature.properties.B01003001']
 		});
 		return bodyCount(features, bufferstorm, cat);
