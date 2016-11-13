@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset=utf-8 />
+    <title>Hurricane Simulation</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='js/mapbox-gl.js'></script>
+    <link href='js/mapbox-gl.css' rel='stylesheet' />
+    <script src='js/mapbox-gl-draw.js'></script>
+    <link href="js/mapbox-gl-draw.css" rel="stylesheet" />   
+    <script src='https://api.mapbox.com/mapbox.js/plugins/turf/v2.0.2/turf.min.js'></script>
+
+		<!-- Latest compiled and minified CSS -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+		<!-- Latest compiled and minified JavaScript -->
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+		<!--jquery cdn-->
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+
+    <style>
+        body { margin:0; padding:0; background-color: #33ff33;}
+        #map { top:20px; bottom:0; width:750px;; height:500px;}
+        #bufferbutton{
+					margin-bottom: 5px;
+        }
+				#results { visibility: hidden; }
+
+    </style>
+</head>
+
+<body>
+
+	<div class="container">
+		
+		<div class="row">
+			<h1 class="col-md-12 text-center">Hurricane simulator</h1>
+		</div>
+
+		<div class="row">
+
+			<div class="col-md-8">
+				<div id='map'></div>
+			</div>
+
+			<div class="col-md-4">
+				<h3>Predict hurricane damage</h3>
+				<ul>
+					<li>Trace the path of the hurricane, press ENTER when done</li>
+					<li>
+						<button class='btn btn-warning' id='bufferbutton'>Compute estimated damage and death tool</button>
+					</li>
+				</ul>
+
+				<div id="results">
+					<h3>Results</h3>
+					<table class="table">
+						<thead>
+							<tr>
+								<th>Category</th>
+								<th>Damage ($)</th>
+								<th>Death toll</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<th scope="row">1</th>
+								<td>Mark</td>
+								<td id='death1'>Otto</td>
+							</tr>
+							<tr>
+								<th scope="row">2</th>
+								<td>Jacob</td>
+								<td id='death2'>Thornton</td>
+							</tr>
+							<tr>
+								<th scope="row">3</th>
+								<td>Mark</td>
+								<td id='death3'>Otto</td>
+							</tr>
+							<tr>
+								<th scope="row">4</th>
+								<td>Mark</td>
+								<td id='death4'>Otto</td>
+							</tr>
+							<tr>
+								<th scope="row">5</th>
+								<td>Mark</td>
+								<td id='death5'>Otto</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+
+			</div>
+
+		<!--closes row-->
+		</div>
+		<!--closes container-->
+	</div>
+
+
+<script>
+//@START
+//Tyler's code
+		var mortality = {1:0.000006133333,
+										2:0.0007031099,
+										3:0.0050465876,
+										4:0.0342701136,
+										5:0.0251089529
+		};
+
+		//Returns the body counts from a list of populations, given the category of hurricane on top of them.
+		function deathsLists(populations,cat) {
+				var total = 0;
+				for(var i=0;i<populations.length;i++) {
+						total+=deaths(populations[i],cat);
+				}
+				return total;
+		}
+
+		const COUNTY_IS_LARGE = 4000;
+
+		//Returns the body count from a population, given the category of hurricane on top of it.
+		function deaths(population, cat, byWater) {
+				if(population>COUNTY_IS_LARGE) {
+						population = 4000;
+				}
+				var aDeathTotal = population*mortality[cat];
+				if(byWater)
+						aDeathTotal = aDeathTotal*.8;
+				else
+						aDeathTotal = aDeathTotal*.2;
+				return aDeathTotal;
+		}
+
+		//Returns the total body count
+		function bodyCount(counties,hurricane,category) {
+				var totalPop = 0;
+				for(var i=0;i<counties.length;i++) {
+						if(counties[i].properties.B01003001) {
+			try{
+				if(turf.intersect(counties[i], hurricane.features[0])!=null)
+					totalPop+=counties[i].properties.B01003001;
+			} catch(e){}                    
+						}
+				}
+				return deaths(totalPop, category);
+		}
+
+		//Static test stuff
+		for(var num =1;num<6;num++) {
+				console.log(deaths(1000,num));
+		}
+
+//@END
+    mapboxgl.accessToken = 'pk.eyJ1IjoiemhpayIsImEiOiJjaW1pbGFpdHQwMGNidnBrZzU5MjF5MTJiIn0.N-EURex2qvfEiBsm-W9j7w';
+
+    let map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v9',
+    center: [-73.9712,40.7831],
+    minZoom: 4,
+    zoom: 5
+    });
+
+
+		map.on('style.load', function() {
+			map.addSource('counties', {
+					"type": "vector",
+					"url": "mapbox://zhik.0dg3a5tc"
+			});
+
+			map.addLayer({
+        "id": "counties",
+        "type": "fill",
+        "source": "counties",
+        "source-layer": "acs2014_5yr_B01003_05000US560-3isjt9",
+        "paint": {
+            "fill-outline-color": "rgba(0,0,0,0.1)",
+            "fill-color": "rgba(0,0,0,0.1)"
+        }
+			});
+        
+    /*map.addLayer({
+        "id": "counties-highlighted",
+        "type": "fill",
+        "source": "counties",
+        "source-layer": "acs2014_5yr_B01003_05000US560-3isjt9",
+        "paint": {
+            "fill-outline-color": "#484896",
+            "fill-color": "#6e599f",
+            "fill-opacity": 0.75
+        },
+        "filter": ["in", "FIPS", ""]
+    }); */
+
+    //make draw controls
+    let Draw = mapboxgl.Draw();
+    map.addControl(Draw);
+
+    //get all draw layers and make the buffers
+    const bufferbutton = document.getElementById('bufferbutton');
+
+    bufferbutton.onclick = function() {
+			const storm = Draw.getAll();
+			//add if statement for if storm is empty
+			const bufferstorm = turf.buffer(storm, 1, 'miles');
+			Draw.deleteAll() 
+			Draw.add(bufferstorm); // add to it's own layer , not the draw layer
+
+
+			console.log(getCountyBodyCountAllCategories(bufferstorm, '5'));
+			var counts = getCountyBodyCountAllCategories(bufferstorm);
+
+			// update table here
+			for(var i=1; i<=5; i++){
+				$('#death' + i).text(counts[i]);	
+			}
+
+			$('#results').css('visibility', 'visible');
+		};
+
+			
+	//Returns a jsonArray of the total body counts by hurricane category
+	function bodyCountAsJSON(counties,hurricane) {
+		var totalDeathsJSON = {1:0,2:0,3:0,4:0,5:0};
+		for(var i=0;i<counties.length;i++) {
+			if(counties[i].properties.B01003001) {
+				try{
+					if(turf.intersect(counties[i], hurricane.features[0])!=null)
+						for(var cat=1;cat<6;cat++) {
+							//TODO: check for whether ths county is coastal
+							totalDeathsJSON[cat] += deaths(counties[i].properties.B01003001, cat, true);
+					}
+				} catch(e){}
+			}
+		}
+		return totalDeathsJSON;
+	}
+
+	function getCountyBodyCount(bufferstorm, cat) {
+		const features = map.queryRenderedFeatures(bufferstorm, { 
+			layers: ['counties'], 
+			filter: ['has','feature.properties.B01003001']
+		});
+		return bodyCount(features, bufferstorm, cat);
+	}
+
+	function getCountyBodyCountAllCategories(bufferstorm) {
+			const features = map.queryRenderedFeatures(bufferstorm, {
+					layers: ['counties'],
+					filter: ['has','feature.properties.B01003001']
+			});
+			return bodyCountAsJSON(features, bufferstorm);
+	}
+	
+	
+});
+
+</script>
+</body>
+</html>
