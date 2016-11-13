@@ -42,45 +42,57 @@
 <script>
 //@START
 //Tyler's code
-        var mortality = {1:0.000006133333,
+        const mortality = {1:0.000006133333,
                         2:0.0007031099,
                         3:0.0050465876,
                         4:0.0342701136,
                         5:0.0251089529
         };
 
-        //Returns the body counts from a list of populations, given the category of hurricane on top of them.
-        function deathsLists(populations,cat) {
-            var total = 0;
-            for(var i=0;i<populations.length;i++) {
-                total+=deaths(populations[i],cat);
-            }
-            return total;
-        }
+        const COUNTY_IS_LARGE = 4000;
 
         //Returns the body count from a population, given the category of hurricane on top of it.
-        function deaths(population, cat) {
-            return population*mortality[cat];
+        function deaths(population, cat, byWater) {
+            if(population>COUNTY_IS_LARGE) {
+                population = 4000;
+            }
+            var aDeathTotal = population*mortality[cat];
+            if(byWater)
+                aDeathTotal = aDeathTotal*.8;
+            else
+                aDeathTotal = aDeathTotal*.2;
+            return aDeathTotal;
         }
 
         //Returns the total body count
         function bodyCount(counties,hurricane,category) {
-            var totalPop = 0;
+            var totalDeaths = 0;
             for(var i=0;i<counties.length;i++) {
                 if(counties[i].properties.B01003001) {
 					try{
 						if(turf.intersect(counties[i], hurricane.features[0])!=null)
-							totalPop+=counties[i].properties.B01003001;
+							totalDeaths+=deaths(counties[i].properties.B01003001, category, true);
 					} catch(e){}                    
                 }
             }
-            return deaths(totalPop, category);
+            return totalDeaths;
         }
 
-
-        //Static test stuff
-        for(var num =1;num<6;num++) {
-            console.log(deaths(1000,num));
+        //Returns a jsonArray of the total body counts by hurricane category
+        function bodyCountAsJSON(counties,hurricane) {
+            var totalDeathsJSON = {1:0,2:0,3:0,4:0,5:0};
+            for(var i=0;i<counties.length;i++) {
+                if(counties[i].properties.B01003001) {
+                    try{
+                        if(turf.intersect(counties[i], hurricane.features[0])!=null)
+                                for(var cat=1;cat<6;cat++) {
+                                    //TODO: check for whether ths county is coastal
+                                    totalDeathsJSON[cat] = deaths(counties[i].properties.B01003001, cat, true);
+                                }
+                    } catch(e){}
+                }
+            }
+            return totalDeathsJSON;
         }
 
 //@END
@@ -143,9 +155,15 @@ map.on('style.load', function() {
         Draw.add(bufferstorm); // add to it's own layer , not the draw layer
 
 
-		console.log(getCountyBodyCount(bufferstorm, '5'));
+		console.log(getCountyBodyCountAllCategories(bufferstorm, '5'));
 		
 	};
+
+    function getCountyBodyCountAllCategories(storm) {
+        for(var i=1;i<6;i++) {
+            console
+        }
+    }
 	
 	function getCountyBodyCount(bufferstorm, cat) {
 		const features = map.queryRenderedFeatures(bufferstorm, { 
@@ -153,7 +171,16 @@ map.on('style.load', function() {
 			filter: ['has','feature.properties.B01003001']
 		});
 		return bodyCount(features, bufferstorm, cat);
+        return bodyCountAsJSON(features, bufferstorm);
 	}
+
+    function getCountyBodyCountAllCategories(bufferstorm) {
+        const features = map.queryRenderedFeatures(bufferstorm, {
+            layers: ['counties'],
+            filter: ['has','feature.properties.B01003001']
+        });
+        return bodyCountAsJSON(features, bufferstorm);
+    }
 	
 	
 });
