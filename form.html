@@ -52,6 +52,13 @@
 					<li>Trace the path of the hurricane, press ENTER when done</li>
 					<li>
 						<button class='btn btn-warning' id='bufferbutton'>Compute estimated damage and death tool</button>
+						<select id="sample" name="sample">
+                            <option value="matthew">matthew</option>
+                            <option value="katrina">katrina</option>
+                            <option value="sandy">sandy</option>
+                        </select>
+                        <button class='btn btn-warning' id='samplebutton'>pick something else</button>
+
 					</li>
 				</ul>
 
@@ -61,34 +68,34 @@
 						<thead>
 							<tr>
 								<th>Category</th>
-								<th>Damage ($)</th>
+								<th>Damage (thousands of USD)</th>
 								<th>Death toll</th>
 							</tr>
 						</thead>
 						<tbody>
 							<tr>
 								<th scope="row">1</th>
-								<td>Mark</td>
+								<td id='cost1'>Mark</td>
 								<td id='death1'>Otto</td>
 							</tr>
 							<tr>
 								<th scope="row">2</th>
-								<td>Jacob</td>
+								<td id='cost2'>Jacob</td>
 								<td id='death2'>Thornton</td>
 							</tr>
 							<tr>
 								<th scope="row">3</th>
-								<td>Mark</td>
+								<td id='cost3'>Mark</td>
 								<td id='death3'>Otto</td>
 							</tr>
 							<tr>
 								<th scope="row">4</th>
-								<td>Mark</td>
+								<td id='cost4'>Mark</td>
 								<td id='death4'>Otto</td>
 							</tr>
 							<tr>
 								<th scope="row">5</th>
-								<td>Mark</td>
+								<td id='cost5'>Mark</td>
 								<td id='death5'>Otto</td>
 							</tr>
 						</tbody>
@@ -156,6 +163,7 @@
                 }
             }
 			totalDeathsJSON =  roundVals(totalDeathsJSON);
+			totalCostJSON = roundVals(totalCostJSON);
 			return {totalDeathsJSON,totalCostJSON};
         }
 		
@@ -232,6 +240,35 @@
 			console.log(onOcean(bufferstorm));
 
 			var counts = getCountyBodyCountAllCategories(bufferstorm);
+			console.log(counts['totalDeathsJSON']);
+			console.log(counts['totalCostJSON']);
+
+			// update table here
+			for(var i=1; i<=5; i++){
+				$('#cost' + i).text(counts['totalCostJSON'][i]);
+				$('#death' + i).text(counts['totalDeathsJSON'][i]);	
+			}
+
+			$('#results').css('visibility', 'visible');
+		};
+
+	  const samplebutton = document.getElementById('samplebutton');
+
+    samplebutton.onclick = function() {
+        //add get value of drop down
+        let url = "https://g250-13573.firebaseapp.com/" + document.getElementById("sample").value + ".geojson"
+        $.getJSON(url, function(response){
+            Draw.deleteAll() 
+            const features = response;
+            Draw.add(features);
+            const sample = Draw.getAll();
+            Draw.deleteAll() 
+            
+            sample.features.forEach(function(s){
+                Draw.add(turf.buffer(s, 10, 'miles'));	
+            })   
+
+            var counts = getCountyBodyCountAllCategories(sample);
 
 			// update table here
 			for(var i=1; i<=5; i++){
@@ -239,7 +276,11 @@
 			}
 
 			$('#results').css('visibility', 'visible');
-		};
+            
+        })
+    }
+   
+
 
    function onOcean(bufferstorm) {
 		const features = map.queryRenderedFeatures({ 
