@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Page for HomeSafe JavaScript</title>
+
+    <script>
+        var mortality = {1:0.000006133333,
+                        2:0.0007031099,
+                        3:0.0050465876,
+                        4:0.0342701136,
+                        5:0.0251089529
+        };
+
+        function deathsLists(populations,cat) {
+            var total = 0;
+            for(var i=0;i<populations.length;i++) {
+                total+=deaths(populations[i],cat);
+            }
+            return total;
+        }
+
+        function deaths(population, cat) {
+            return population*mortality[cat];
+        }
+
+
+        for(var num =1;num<6;num++) {
+            console.log(deaths(1000,num));
+        }
+
+    </script>
+</head>
+<body>
+
+</body>
+</html>
