@@ -165,15 +165,19 @@
     zoom: 5
     });
 
-
 		map.on('style.load', function() {
 			map.addSource('counties', {
 					"type": "vector",
 					"url": "mapbox://zhik.0dg3a5tc"
 			});
 
-			map.addLayer({
-        "id": "counties",
+		map.addSource('water', {
+        "type": "vector",
+        "url": "mapbox://zhik.81hc6tfw"
+    });
+
+    map.addLayer({
+        "id": "counties1",
         "type": "fill",
         "source": "counties",
         "source-layer": "acs2014_5yr_B01003_05000US560-3isjt9",
@@ -181,23 +185,25 @@
             "fill-outline-color": "rgba(0,0,0,0.1)",
             "fill-color": "rgba(0,0,0,0.1)"
         }
-			});
-        
-    /*map.addLayer({
-        "id": "counties-highlighted",
-        "type": "fill",
-        "source": "counties",
-        "source-layer": "acs2014_5yr_B01003_05000US560-3isjt9",
-        "paint": {
-            "fill-outline-color": "#484896",
-            "fill-color": "#6e599f",
-            "fill-opacity": 0.75
-        },
-        "filter": ["in", "FIPS", ""]
-    }); */
+    }, 'place-city-sm');
 
-    //make draw controls
-    let Draw = mapboxgl.Draw();
+    map.addLayer({
+        "id": "water1",
+        "type": "fill",
+        "source": "water",
+        "source-layer": "simplified-water-polygons-com-2kj5lv",
+        "paint": {
+            "fill-color": "rgba(55,107,158, 0.8)"
+        }
+    }, 'counties1');
+  
+   //make draw controls
+    let Draw = mapboxgl.Draw({
+      displayControlsDefault: false,
+      controls: {
+        'line_string': true
+      }
+    });
     map.addControl(Draw);
 
     //get all draw layers and make the buffers
@@ -210,8 +216,9 @@
 			Draw.deleteAll() 
 			Draw.add(bufferstorm); // add to it's own layer , not the draw layer
 
-
 			console.log(getCountyBodyCountAllCategories(bufferstorm, '5'));
+			console.log(onOcean(bufferstorm));
+
 			var counts = getCountyBodyCountAllCategories(bufferstorm);
 
 			// update table here
@@ -222,7 +229,21 @@
 			$('#results').css('visibility', 'visible');
 		};
 
-			
+   function onOcean(bufferstorm) {
+		const features = map.queryRenderedFeatures({ 
+			layers: ['water1']
+		});
+        let ocean = false;
+        for(var i=0;i<features.length;i++) {
+            try{
+                if(turf.union(features[i], bufferstorm.features[0])!=null){      
+                    ocean = true         
+                }
+            } catch(e){}      
+        }
+	    return ocean;
+	}
+
 	//Returns a jsonArray of the total body counts by hurricane category
 	function bodyCountAsJSON(counties,hurricane) {
 		var totalDeathsJSON = {1:0,2:0,3:0,4:0,5:0};
@@ -255,7 +276,6 @@
 			});
 			return bodyCountAsJSON(features, bufferstorm);
 	}
-	
 	
 });
 
