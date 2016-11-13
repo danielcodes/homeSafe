@@ -60,18 +60,18 @@
     }).addTo(map);
 
     map.on('draw:created', function(e) {
-    let cords = [];
-    e.layer._latlngs.forEach(function(latlngs){
-        cords.push([latlngs.lng, latlngs.lat]);
-    });
+        let cords = [];
+        e.layer._latlngs.forEach(function(latlngs){
+            cords.push([latlngs.lng, latlngs.lat]);
+        });
 
-    var stormline = turf.linestring(cords, {
-    "stroke": "#6BC65F",
-    "stroke-width": 5
-});
+        var stormline = turf.linestring(cords, {
+            "stroke": "#6BC65F",
+            "stroke-width": 5
+        });
         var bufferstorm = turf.buffer(stormline, 5, 'miles');
         console.log(bufferstorm);
-		L.mapbox.featureLayer().setGeoJSON(bufferstorm).addTo(map);
+        L.mapbox.featureLayer().setGeoJSON(bufferstorm).addTo(map);
     });
 
 </script>
