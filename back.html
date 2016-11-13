@@ -4,13 +4,12 @@
     <meta charset=utf-8 />
     <title>Hurricane Simulation</title>
     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-    <script src='mapbox-gl.js'></script>
-    <link href='mapbox-gl.css' rel='stylesheet' />
-    <script src='mapbox-gl-draw.js'></script>
-    <link href="mapbox-gl-draw.css" rel="stylesheet" />
-    
-    
+    <script src='js/mapbox-gl.js'></script>
+    <link href='js/mapbox-gl.css' rel='stylesheet' />
+    <script src='js/mapbox-gl-draw.js'></script>
+    <link href="js/mapbox-gl-draw.css" rel="stylesheet" />   
     <script src='https://api.mapbox.com/mapbox.js/plugins/turf/v2.0.2/turf.min.js'></script>
+
     <style>
         body { margin:0; padding:0; }
         #map { position:absolute; top:0; bottom:0; width:100%; }
@@ -93,14 +92,12 @@
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v9',
     center: [-73.9712,40.7831],
-    minZoom: 2,
+    minZoom: 4,
     zoom: 5
     });
 
 
 map.on('style.load', function() {
-    // Add the source to query. In this example we're using
-    // county polygons uploaded as vector tiles
     map.addSource('counties', {
         "type": "vector",
         "url": "mapbox://zhik.0dg3a5tc"
@@ -143,51 +140,25 @@ map.on('style.load', function() {
         Draw.deleteAll() 
         Draw.add(bufferstorm); // add to it's own layer , not the draw layer
 
-        //https://www.mapbox.com/mapbox-gl-js/example/using-box-queryrenderedfeatures/
-        const features = map.queryRenderedFeatures(bufferstorm, { layers: ['counties'] });
-
+        //https://www.mapbox.com/mapbox-gl-js/api/#Map#queryRenderedFeatures
+        const bufferstormGeom = bufferstorm.features[0].geometry.coordinates[0];
+        const countiesinbuffer = []                                                        //not working  
+        bufferstormGeom.forEach(function(e){                                              //not working   
+            countiesinbuffer.push(map.queryRenderedFeatures(e, { layers: ['counties'] })) //not working 
+        })
             // Run through the selected features and set a filter
             // to match features with unique FIPS codes to activate
             // the `counties-highlighted` layer.
 		let totalpop = 0;
-        const filter = features.reduce(function(nothing, feature) {
-            if(feature.properties.B01003001){
-                console.log(feature)
-                totalpop += feature.properties.B01003001;
-            }
-			return totalpop;
-        }, ['in', 'FIPS']);
-		console.log(filter);
+        // const filter = features.reduce(function(nothing, feature) {
+        //     if(feature.properties.B01003001){
+        //         console.log(feature)
+        //         totalpop += feature.properties.B01003001;
+        //     }
+		// 	return totalpop;
+        // }, ['in', 'FIPS']);
     }
 });
-
-
-
-
-
-//     var drawControl = new L.Control.Draw({
-//         edit: {
-//             featureGroup: featureGroup
-//         }, draw:{polyline:{shapeOptions:{color:'#7E97B3',weight: 50},metric: false},
-//         polygon: false, rectangle: false, circle: false,marker:false }
-//     }).addTo(map);
-
-    // map.on('draw:created', function(e) {
-    //     let cords = [];
-    //     e.layer._latlngs.forEach(function(latlngs){
-    //         cords.push([latlngs.lng, latlngs.lat]);
-    //     });
-
-    //     var stormline = turf.linestring(cords, {"stroke": "#6BC65F","stroke-width": 5});
-    //     var bufferstorm = turf.buffer(stormline, 5, 'miles');
-    //     L.mapbox.featureLayer().setGeoJSON(bufferstorm).addTo(map);
-    // });
-
-
-
-
-
-
 
 </script>
 </body>
