@@ -7,7 +7,8 @@
     <script src='js/mapbox-gl.js'></script>
     <link href='js/mapbox-gl.css' rel='stylesheet' />
     <script src='js/mapbox-gl-draw.js'></script>
-    <link href="js/mapbox-gl-draw.css" rel="stylesheet" />   
+    <link href="js/mapbox-gl-draw.css" rel="stylesheet" />
+    <script src='js/coastalCounties.js'></script>
     <script src='https://api.mapbox.com/mapbox.js/plugins/turf/v2.0.2/turf.min.js'></script>
 
     <style>
@@ -54,7 +55,7 @@
         //Returns the body count from a population, given the category of hurricane on top of it.
         function deaths(population, cat, byWater) {
             if(population>COUNTY_IS_LARGE) {
-                population = 4000;
+                population = COUNTY_IS_LARGE;
             }
             var aDeathTotal = population*mortality[cat];
             if(byWater)
@@ -64,31 +65,19 @@
             return aDeathTotal;
         }
 
-        //Returns the total body count
-        function bodyCount(counties,hurricane,category) {
-            var totalDeaths = 0;
-            for(var i=0;i<counties.length;i++) {
-                if(counties[i].properties.B01003001) {
-					try{
-						if(turf.intersect(counties[i], hurricane.features[0])!=null)
-							totalDeaths+=deaths(counties[i].properties.B01003001, category, true);
-					} catch(e){}                    
-                }
-            }
-            return totalDeaths;
-        }
-
         //Returns a jsonArray of the total body counts by hurricane category
         function bodyCountAsJSON(counties,hurricane) {
             var totalDeathsJSON = {1:0,2:0,3:0,4:0,5:0};
             for(var i=0;i<counties.length;i++) {
                 if(counties[i].properties.B01003001) {
                     try{
-                        if(turf.intersect(counties[i], hurricane.features[0])!=null)
+                        if(turf.intersect(counties[i], hurricane.features[0])!=null) {
+                            const fips = counties[i].properties.geoid.split('US')[1];
+                            const coastal = coastalCounties.includes(fips);
                                 for(var cat=1;cat<6;cat++) {
-                                    //TODO: check for whether ths county is coastal
-                                    totalDeathsJSON[cat] = deaths(counties[i].properties.B01003001, cat, true);
+                                    totalDeathsJSON[cat] += deaths(counties[i].properties.B01003001, cat, coastal);
                                 }
+                        }
                     } catch(e){}
                 }
             }
@@ -159,20 +148,6 @@ map.on('style.load', function() {
 		
 	};
 
-    function getCountyBodyCountAllCategories(storm) {
-        for(var i=1;i<6;i++) {
-            console
-        }
-    }
-	
-	function getCountyBodyCount(bufferstorm, cat) {
-		const features = map.queryRenderedFeatures(bufferstorm, { 
-			layers: ['counties'], 
-			filter: ['has','feature.properties.B01003001']
-		});
-		return bodyCount(features, bufferstorm, cat);
-        return bodyCountAsJSON(features, bufferstorm);
-	}
 
     function getCountyBodyCountAllCategories(bufferstorm) {
         const features = map.queryRenderedFeatures(bufferstorm, {
