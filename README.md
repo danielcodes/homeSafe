@@ -13,3 +13,5 @@ Using data from previous hurricanes, we set out to create a hurricane simulator.
 ### Tech used
 * HTML/CSS, Javascript, Carto
 
+### Awards:
+NYC Expedition Hacks NYC 2016: Best Use Of MapBox
